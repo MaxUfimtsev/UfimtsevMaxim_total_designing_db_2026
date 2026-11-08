@@ -10,7 +10,7 @@
 
 | Параметр | Значение |
 |---|---|
-| PostgreSQL version | `SELECT version();` → 15+ |
+| PostgreSQL version | `SELECT version();` → 17.2 |
 | Дата проверки | ___ |
 | Схема | `ufimtsev_food` |
 | Роль-аудитор | `inspector` |
@@ -27,7 +27,7 @@
 
 Ожидается: без ошибок.
 Факт: Копия успешно восстанавливается (12 таблиц + 1 представление). 
-Вердикт: ___
+Вердикт: ОК
 
 ### A.2. Переключение на inspector
 
@@ -39,7 +39,7 @@ SELECT current_user;
 
 Ожидается: `inspector`.
 Факт: current_user = inspector
-Вердикт: ___
+Вердикт: ОК
 
 ---
 
