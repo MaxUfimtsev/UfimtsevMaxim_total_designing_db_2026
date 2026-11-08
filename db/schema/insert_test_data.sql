@@ -7,30 +7,22 @@ declare
     d_client_id uuid;
     d_address_id uuid;
     d_restaurant_address_id uuid;
-    d_restaurant_status ufimtsev_food.restaurant_status;
     d_product_category_id uuid;
     d_restaurant_id uuid;
-    d_product_status ufimtsev_food.product_status;
     d_order_status ufimtsev_food.order_status;
-    d_order_pay_status ufimtsev_food.order_pay_status;
     d_courier_id uuid;
-    d_product_ids uuid[];
-    d_product_id uuid;
     d_order_id uuid;
     d_order_timestamp timestamp;
     d_delivery_timestamp timestamp;
     d_order_amount numeric;
     d_order_total numeric;
-    d_payment_type ufimtsev_food.payment_type;
-    d_payment_status ufimtsev_food.payment_status;
-    d_payment_attempts int;
     d_review_entity_type ufimtsev_food.review_entity_type;
     d_review_entity_id uuid;
     d_pay_month date;
-    d_pay_coefficient numeric(5, 2);
-    d_next_coefficient numeric(5, 2);
+    d_pay_coefficient numeric;
+    d_next_coefficient numeric;
     d_delivered_count bigint;
-    d_commission_sum numeric(10, 2);
+    d_commission_sum numeric;
 begin
     if value is null or value <= 0 then
         raise exception 'Value должен быть положительным';
@@ -94,9 +86,6 @@ begin
             end if;
         end loop;
 
-        d_restaurant_status = (enum_range(null::ufimtsev_food.restaurant_status)) [
-            floor(random() * 2)::int + 1
-        ];
 
         d_restaurant_id = exts.uuid_generate_v4();
 
@@ -109,28 +98,21 @@ begin
             '09:00',
             '22:00',
             'Реквизиты ресторана ' || i,
-            d_restaurant_status
+            (enum_range(null::ufimtsev_food.restaurant_status))[floor(random()*2)::int+1]
         );
 
         for j in 1..5
         loop
-            d_product_status = (enum_range(null::ufimtsev_food.product_status))[
-                floor(random()*3)::int + 1
-            ];
             insert into ufimtsev_food.product (product_name, product_category_id, price, restaurant_id, status, description)
             values (
                 'Блюдо ' || i || '_' || j,
                 d_product_category_id,
                 round((200 + random() * 4800)::numeric, 2),
                 d_restaurant_id,
-                d_product_status,
+                (enum_range(null::ufimtsev_food.product_status))[floor(random()*3)::int+1],
                 'Описание блюда ' || i || '_' || j
             );
         end loop;
-
-        select array_agg(product_id) into d_product_ids
-        from ufimtsev_food.product
-        where restaurant_id = d_restaurant_id;
 
         select sum(price) into d_order_amount
         from ufimtsev_food.product
@@ -141,8 +123,6 @@ begin
             d_order_status = (enum_range(null::ufimtsev_food.order_status))[
                 floor(random() * 5)::int + 1
             ];
-
-            d_order_pay_status = 'оплачен';
 
             d_order_timestamp = now()::timestamp - floor(random() * 180 + 1)::int * interval '1 day';
             d_order_timestamp = greatest(d_order_timestamp, d_hire_date::timestamp);
@@ -166,38 +146,23 @@ begin
             values (
                 d_order_id, d_courier_id, d_client_id, d_address_id, d_restaurant_id,
                 d_order_timestamp, d_delivery_timestamp, 
-                d_order_amount, d_order_status, d_order_pay_status, 'Заказ' || i || '_' || j
+                d_order_amount, d_order_status, 'оплачен', 'Заказ' || i || '_' || j
             );
 
-            foreach d_product_id in array d_product_ids
-            loop
-                insert into ufimtsev_food.order_structure (order_id, product_id, quantity)
-                values (d_order_id, d_product_id, 1);
-            end loop;
+            insert into ufimtsev_food.order_structure (order_id, product_id, quantity)
+            select d_order_id, p.product_id, 1
+            from ufimtsev_food.product p
+            where p.restaurant_id = d_restaurant_id;
 
             select total_amount into d_order_total
             from ufimtsev_food."order"
             where order_id = d_order_id;
 
-            d_payment_attempts = floor(random()*3)::int + 1;
-
-            for k in 1..d_payment_attempts
-            loop
-                if k = d_payment_attempts then
-                    d_payment_status = 'успех';
-                else
-                    d_payment_status = 'ошибка';
-                end if;
-            
-                d_payment_type = (enum_range(null::ufimtsev_food.payment_type))[
-                    floor(random() * 3)::int + 1
-                ];
-                
-                insert into ufimtsev_food.payment (order_id, payment_type, status, amount, transaction_id, payment_timestamp)
-                values (
-                    d_order_id, d_payment_type, d_payment_status, d_order_total, 
-                    exts.uuid_generate_v4(), d_order_timestamp + (k * 15) * interval '1 minute');
-            end loop;
+            insert into ufimtsev_food.payment (order_id, payment_type, status, amount, transaction_id, payment_timestamp)
+            values (
+                d_order_id, 
+                (enum_range(null::ufimtsev_food.payment_type))[floor(random()*3)::int+1], 
+                'успех', d_order_total, exts.uuid_generate_v4(), d_order_timestamp + interval '15 minute');
 
             d_review_entity_type = (enum_range(null::ufimtsev_food.review_entity_type))[
                 floor(random() * 3)::int + 1

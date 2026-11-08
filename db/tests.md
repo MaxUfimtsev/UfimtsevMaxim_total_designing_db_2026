@@ -178,7 +178,7 @@ ORDER BY tbl;
 ```
 
 Ожидается: 10, 10, 10, 10, 50, 50, 50, 50, 50.
-Факт: `address` = 50, `client` = 10, `courier` = 10, `order` = 50, `payment` = 103, 
+Факт: `address` = 50, `client` = 10, `courier` = 10, `order` = 50, `payment` = 50, 
 `product` = 50, `product_category` = 10, `restaurant` = 10, `review` = 50
 
 ### C.4. Адреса ресторанов vs клиентов (BR-11.7)
