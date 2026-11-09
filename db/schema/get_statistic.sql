@@ -28,7 +28,7 @@ begin
                 o.restaurant_id,
                 p.product_name,
                 sum(os.quantity) as summa,
-                row_number() over (partition by o.restaurant_id order by sum(os.quantity) desc, random()) as row_num
+                row_number() over (partition by o.restaurant_id order by sum(os.quantity) desc) as row_num
             from ufimtsev_food.product p
             join ufimtsev_food.order_structure os on p.product_id = os.product_id
             join delivered_orders o on o.order_id = os.order_id
@@ -39,12 +39,11 @@ begin
     best_buyer as (
         select 
             o.restaurant_id, 
-            c.login,
+            o.client_id,
             count(o.order_id) as orders_count,
-            row_number() over (partition by o.restaurant_id order by count(o.order_id) desc, random()) as row_num
+            row_number() over (partition by o.restaurant_id order by count(o.order_id) desc) as row_num
         from delivered_orders o
-        left join ufimtsev_food.client c on c.client_id = o.client_id
-        group by o.restaurant_id, c.login
+        group by o.restaurant_id, o.client_id
     ),
     order_stats as (
         select
@@ -60,11 +59,12 @@ begin
         bp.product_name as best_product_name,
         ost.total_amount as total_amount,
         ost.avg_amount as avg_amount,
-        bb.login as best_user
+        c.login as best_user
     from ufimtsev_food.restaurant r
     left join best_product bp on bp.restaurant_id = r.restaurant_id
     left join best_buyer bb on bb.restaurant_id = r.restaurant_id
         and bb.row_num = 1
+    left join ufimtsev_food.client c on c.client_id = bb.client_id
     left join order_stats ost on ost.restaurant_id = r.restaurant_id;
 
 end;
