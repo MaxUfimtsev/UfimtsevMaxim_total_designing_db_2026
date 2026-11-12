@@ -40,7 +40,8 @@ begin
         insert into ufimtsev_food.product_category(product_category_id, product_category_name)
         values (
             d_product_category_id, 
-            substring(repeat(md5(random()::text), 4), 1, ceil(random() * 99 + 1)::int));
+            (SELECT string_agg(substr('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', floor(random() * 33)::int + 1, 1), '')
+            FROM generate_series(1, ceil(random() * 99 + 1)::int)));
         
         -- создание курьеров
         if i = 1 then
@@ -60,9 +61,12 @@ begin
         end if;
 
         d_courier_id = exts.uuid_generate_v4();
-        d_courier_firstname = substring(repeat(md5(random()::text), 2), 1, ceil(random() * 59 + 1)::int);
-        d_courier_lastname = substring(repeat(md5(random()::text), 2), 1, ceil(random() * 59 + 1)::int);
-        d_courier_midname = substring(repeat(md5(random()::text), 3), 1, ceil(random() * 79 + 1)::int);
+        d_courier_firstname = (SELECT string_agg(substr('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', floor(random() * 33)::int + 1, 1), '')
+            FROM generate_series(1, ceil(random() * 59 + 1)::int));
+        d_courier_lastname = (SELECT string_agg(substr('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', floor(random() * 33)::int + 1, 1), '')
+            FROM generate_series(1, ceil(random() * 59 + 1)::int));
+        d_courier_midname = (SELECT string_agg(substr('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', floor(random() * 33)::int + 1, 1), '')
+            FROM generate_series(1, ceil(random() * 79 + 1)::int));
 
         insert into ufimtsev_food.courier (courier_id, first_name, last_name, middle_name, phone_number, status, hire_date, dismissal_date)
         values (
@@ -76,7 +80,8 @@ begin
         insert into ufimtsev_food.client (client_id, login, password, phone_number)
         values (
             d_client_id,
-            substring(repeat(md5(random()::text), 2), 1, ceil(random() * 49 + 1)::int),
+            (SELECT string_agg(substr('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', floor(random() * 33)::int + 1, 1), '')
+            FROM generate_series(1, ceil(random() * 49 + 1)::int)),
             md5(random()::text),
             '+7' || (floor(random()*9000000000)+1000000000)::text
         );
@@ -88,7 +93,8 @@ begin
             insert into ufimtsev_food.address (address_id, street, house_number)
             values (
                 d_address_id, 
-                substring(repeat(md5(random()::text), 4), 1, ceil(random() * 99 + 1)::int),
+                (SELECT string_agg(substr('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', floor(random() * 33)::int + 1, 1), '')
+                    FROM generate_series(1, ceil(random() * 99 + 1)::int)),
                 (ceil(random() * 999 + 1)::int)::text);
             if j = 1 then
                 d_restaurant_address_id = d_address_id;
@@ -107,9 +113,11 @@ begin
         insert into ufimtsev_food.restaurant (restaurant_id, restaurant_name, address_id, description, work_start, work_end, inn, ogrn, bank_account, status)
         values (
             d_restaurant_id,
-            substring(repeat(md5(random()::text), 4), 1, ceil(random() * 99 + 1)::int),
+            (SELECT string_agg(substr('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', floor(random() * 33)::int + 1, 1), '')
+                FROM generate_series(1, ceil(random() * 99 + 1)::int)),
             d_restaurant_address_id,
-            substring(repeat(md5(random()::text), 4), 1, ceil(random() * 99 + 1)::int),
+            (SELECT string_agg(substr('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', floor(random() * 33)::int + 1, 1), '')
+                FROM generate_series(1, ceil(random() * 99 + 1)::int)),
             d_work_start,
             d_work_end,
             lpad(floor(random() * 1000000000000)::text, 12, '0'),
@@ -123,12 +131,14 @@ begin
         loop
             insert into ufimtsev_food.product (product_name, product_category_id, price, restaurant_id, status, description)
             values (
-                substring(repeat(md5(random()::text), 4), 1, ceil(random() * 99 + 1)::int),
+                (SELECT string_agg(substr('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', floor(random() * 33)::int + 1, 1), '')
+                    FROM generate_series(1, ceil(random() * 99 + 1)::int)),
                 d_product_category_id,
                 round((200 + random() * 4800)::numeric, 2),
                 d_restaurant_id,
                 (enum_range(null::ufimtsev_food.product_status))[floor(random()*3)::int+1],
-                substring(repeat(md5(random()::text), 4), 1, ceil(random() * 99 + 1)::int)
+                (SELECT string_agg(substr('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', floor(random() * 33)::int + 1, 1), '')
+                    FROM generate_series(1, ceil(random() * 99 + 1)::int))
             );
         end loop;
 
@@ -151,7 +161,7 @@ begin
             from ufimtsev_food.product
             where product_id = any(d_product_ids);
 
-            d_quantity = greatest(floor(random() * 5)::int + 1, ceil(1000 / (d_order_amount * 1.1))::int);
+            d_quantity = greatest(floor(random() * 5)::int + 1, ceil(1000 / d_order_amount)::int);
 
             d_order_amount = d_order_amount * d_quantity;
 
@@ -183,7 +193,9 @@ begin
             values (
                 d_order_id, d_courier_id, d_client_id, d_address_id, d_restaurant_id,
                 d_order_timestamp, d_delivery_timestamp, 
-                d_order_amount, d_order_status, 'оплачен', substring(repeat(md5(random()::text), 4), 1, ceil(random() * 99 + 1)::int)
+                d_order_amount, d_order_status, 'оплачен', 
+                (SELECT string_agg(substr('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', floor(random() * 33)::int + 1, 1), '')
+                    FROM generate_series(1, ceil(random() * 99 + 1)::int))
             );
 
             -- создание структуры заказов
@@ -218,7 +230,8 @@ begin
             values (
                 d_client_id, d_order_timestamp + (1 + random() * 3) * interval '1 hour', 
                 d_review_entity_id, d_review_entity_type, d_order_id, 
-                substring(repeat(md5(random()::text), 4), 1, ceil(random() * 99 + 1)::int),
+                (SELECT string_agg(substr('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', floor(random() * 33)::int + 1, 1), '')
+                    FROM generate_series(1, ceil(random() * 99 + 1)::int)),
                 floor(random() * 5)::int + 1);
         end loop;
 

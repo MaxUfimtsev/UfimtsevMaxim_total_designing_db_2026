@@ -80,12 +80,12 @@ create table ufimtsev_food."order" (
     order_timestamp timestamp not null,
     delivery_timestamp timestamp check (status <> 'доставлен' or delivery_timestamp is not null) check (delivery_timestamp >= order_timestamp),
     order_amount numeric(8, 2) not null,
-    commission numeric(7, 2) generated always as (round(order_amount*0.1, 2)) stored,
-    total_amount numeric(8, 2) generated always as (order_amount + round(order_amount*0.1, 2)) stored
+    commission numeric(7, 2) not null generated always as (round(order_amount*0.1, 2)) stored,
+    total_amount numeric(8, 2) not null generated always as (order_amount + round(order_amount*0.1, 2)) stored
         check (total_amount >= 1000),
     status ufimtsev_food.order_status not null,
     pay_status ufimtsev_food.order_pay_status not null,
-    description text not null,
+    description text,
     foreign key (client_id, address_id) references ufimtsev_food.client_address (client_id, address_id),
     unique (order_id, client_id),
     unique (order_id, total_amount)
@@ -176,79 +176,31 @@ begin
     end if;
 
     -- логика изменения рейтинга
-    if tg_op = 'INSERT' then
-
-        if new.entity_type = 'блюдо' then
-            update ufimtsev_food.product
-            set rating = (
-                select avg(rating)
-                from ufimtsev_food.review
-                where entity_type = 'блюдо'
-                    and entity_id = new.entity_id
-            )
-            where product_id = new.entity_id;
-
-        elsif new.entity_type = 'ресторан' then
-            update ufimtsev_food.restaurant
-            set rating = (
-                select avg(rating)
-                from ufimtsev_food.review
-                where entity_type = 'ресторан'
-                    and entity_id = new.entity_id
-            )
-            where restaurant_id = new.entity_id;
-        end if;
-
-    elsif tg_op = 'DELETE' then
-
+    if tg_op = 'DELETE' or 
+        (tg_op = 'UPDATE' and (old.entity_type <> new.entity_type or old.entity_id <> new.entity_id)) then
         if old.entity_type = 'блюдо' then
             update ufimtsev_food.product
             set rating = (
-                select avg(rating)
-                from ufimtsev_food.review
-                where entity_type = 'блюдо'
+                select avg(rating) 
+                from ufimtsev_food.review 
+                where entity_type = 'блюдо' 
                     and entity_id = old.entity_id
             )
             where product_id = old.entity_id;
-
         elsif old.entity_type = 'ресторан' then
             update ufimtsev_food.restaurant
             set rating = (
-                select avg(rating)
-                from ufimtsev_food.review
-                where entity_type = 'ресторан'
+                select avg(rating) 
+                from ufimtsev_food.review 
+                where entity_type = 'ресторан' 
                     and entity_id = old.entity_id
             )
             where restaurant_id = old.entity_id;
         end if;
+    end if;
 
-    elsif tg_op = 'UPDATE' then
-
-        if old.entity_type <> new.entity_type or old.entity_id <> new.entity_id then
-
-            if old.entity_type = 'блюдо' then
-                update ufimtsev_food.product
-                set rating = (
-                    select avg(rating)
-                    from ufimtsev_food.review
-                    where entity_type = 'блюдо'
-                        and entity_id = old.entity_id
-                )
-                where product_id = old.entity_id;
-
-            elsif old.entity_type = 'ресторан' then
-
-                update ufimtsev_food.restaurant
-                set rating = (
-                    select avg(rating)
-                    from ufimtsev_food.review
-                    where entity_type = 'ресторан'
-                        and entity_id = old.entity_id
-                )
-                where restaurant_id = old.entity_id;
-            end if;
-        end if;
-
+    if tg_op = 'INSERT' or tg_op = 'UPDATE' then
+    
         if new.entity_type = 'блюдо' then
         
             update ufimtsev_food.product
@@ -259,8 +211,9 @@ begin
                     and entity_id = new.entity_id
             )
             where product_id = new.entity_id;
-
+        
         elsif new.entity_type = 'ресторан' then
+
             update ufimtsev_food.restaurant
             set rating = (
                 select avg(rating)
@@ -269,7 +222,9 @@ begin
                     and entity_id = new.entity_id
             )
             where restaurant_id = new.entity_id;
-        end if; 
+
+        end if;
+    
     end if;
 
     if tg_op = 'DELETE' then
